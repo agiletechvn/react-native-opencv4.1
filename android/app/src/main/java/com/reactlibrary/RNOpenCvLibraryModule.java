@@ -1,24 +1,35 @@
 package com.reactlibrary;
 
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.WritableMap;
+import com.reactnativeopencvtutorial.R;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import org.opencv.core.CvType;
+
 import org.opencv.core.Mat;
-
+import org.opencv.core.Rect;
 import org.opencv.android.Utils;
-import org.opencv.imgproc.Imgproc;
+import org.opencv.core.MatOfRect;
+import org.opencv.objdetect.CascadeClassifier;
 
-import android.util.Base64;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class RNOpenCvLibraryModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
+    private CascadeClassifier cascadeClassifier = null;
 
     public RNOpenCvLibraryModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -31,52 +42,65 @@ public class RNOpenCvLibraryModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void checkForBlurryImage(String imageAsBase64, Callback errorCallback, Callback successCallback) {
+    public void detect(String imageURL, Promise promise) {
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inDither = true;
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 
-            byte[] decodedString = Base64.decode(imageAsBase64, Base64.DEFAULT);
-            Bitmap image = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+            URL url = new URL(imageURL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            Bitmap image = BitmapFactory.decodeStream(input, null, options);
 
 
-//      Bitmap image = decodeSampledBitmapFromFile(imageurl, 2000, 2000);
-            int l = CvType.CV_8UC1; //8-bit grey scale image
             Mat matImage = new Mat();
             Utils.bitmapToMat(image, matImage);
-            Mat matImageGrey = new Mat();
-            Imgproc.cvtColor(matImage, matImageGrey, Imgproc.COLOR_BGR2GRAY);
 
-            Bitmap destImage;
-            destImage = Bitmap.createBitmap(image);
-            Mat dst2 = new Mat();
-            Utils.bitmapToMat(destImage, dst2);
-            Mat laplacianImage = new Mat();
-            dst2.convertTo(laplacianImage, l);
-            Imgproc.Laplacian(matImageGrey, laplacianImage, CvType.CV_8U);
-            Mat laplacianImage8bit = new Mat();
-            laplacianImage.convertTo(laplacianImage8bit, l);
+            if(cascadeClassifier == null) {
 
-            Bitmap bmp = Bitmap.createBitmap(laplacianImage8bit.cols(), laplacianImage8bit.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(laplacianImage8bit, bmp);
-            int[] pixels = new int[bmp.getHeight() * bmp.getWidth()];
-            bmp.getPixels(pixels, 0, bmp.getWidth(), 0, 0, bmp.getWidth(), bmp.getHeight());
-            int maxLap = -16777216; // 16m
-            for (int pixel : pixels) {
-                if (pixel > maxLap)
-                    maxLap = pixel;
+                File cascadeDir = this.reactContext.getDir("cascade", Context.MODE_PRIVATE);
+                File mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
+
+                // copy if not existed
+                if (!mCascadeFile.exists()) {
+                    InputStream is = this.reactContext.getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
+                    FileOutputStream os = new FileOutputStream(mCascadeFile);
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+                    is.close();
+                    os.close();
+                }
+
+                // init one
+                cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
             }
 
-//            int soglia = -6118750;
-            int soglia = -8118750;
-            if (maxLap <= soglia) {
-                System.out.println("is blur image");
+
+            // detect here
+            MatOfRect rects = new MatOfRect();
+            cascadeClassifier.detectMultiScale(matImage, rects);
+            Rect[] faceRects = rects.toArray();
+            WritableArray dataArray= Arguments.createArray();
+            for(int i=0;i < faceRects.length; ++i){
+                WritableMap dataMap = Arguments.createMap();
+                dataMap.putInt("x", faceRects[i].x);
+                dataMap.putInt("y", faceRects[i].y);
+                dataMap.putInt("width", faceRects[i].width);
+                dataMap.putInt("height", faceRects[i].height);
+
+                dataArray.pushMap(dataMap);
             }
 
-            successCallback.invoke(maxLap <= soglia);
+            promise.resolve(dataArray);
+
         } catch (Exception e) {
-            errorCallback.invoke(e.getMessage());
+            promise.reject(e.getCause());
         }
     }
 }

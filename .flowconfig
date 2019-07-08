@@ -39,6 +39,7 @@ module.file_ext=.js
 module.file_ext=.jsx
 module.file_ext=.json
 module.file_ext=.native.js
+esproposal.decorators=ignore
 
 suppress_type=$FlowIssue
 suppress_type=$FlowFixMe
@@ -51,4 +52,4 @@ suppress_comment=\\(.\\|\n\\)*\\$FlowFixedInNextDeploy
 suppress_comment=\\(.\\|\n\\)*\\$FlowExpectedError
 
 [version]
-^0.65.0
+^0.100.0

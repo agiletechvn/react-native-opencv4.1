@@ -3,8 +3,6 @@ package com.reactnativeopencvtutorial;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
-import com.horcrux.svg.SvgPackage;
-import org.reactnative.camera.RNCameraPackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
@@ -35,8 +33,6 @@ public class MainApplication extends Application implements ReactApplication {
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
           new MainReactPackage(),
-            new SvgPackage(),
-            new RNCameraPackage(),
           new RNOpenCvLibraryPackage()
       );
     }
@@ -82,7 +78,7 @@ public class MainApplication extends Application implements ReactApplication {
   {
     if (!OpenCVLoader.initDebug()) {
       Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-      OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+      OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
     } else {
       Log.d("OpenCV", "OpenCV library found inside package. Using it!");
       mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);

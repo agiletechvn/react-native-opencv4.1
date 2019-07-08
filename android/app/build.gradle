@@ -94,13 +94,12 @@ def enableSeparateBuildPerCPUArchitecture = false
 def enableProguardInReleaseBuilds = false
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "com.reactnativeopencvtutorial"
-        minSdkVersion 16
-        targetSdkVersion 22
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -137,13 +136,13 @@ android {
 }
 
 dependencies {
-    compile project(':react-native-svg')
-    compile project(':react-native-camera')
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.android.support:appcompat-v7:23.0.1'
-    compile 'com.facebook.react:react-native:+'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
+    implementation 'com.facebook.react:react-native:0.60.0'
     // From node_modules
-    compile project(':openCVLibrary341')
+    implementation project(':openCV')
+
+
 }
 
 // Run this once to be able to run the application with BUCK

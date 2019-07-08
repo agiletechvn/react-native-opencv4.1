@@ -7,6 +7,10 @@
 {
   return dispatch_get_main_queue();
 }
+
+cv::CascadeClassifier faceCascade;
+bool cascadeLoaded = false;
+
 RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(addEvent:(NSString *)name location:(NSString *)location)
@@ -14,17 +18,38 @@ RCT_EXPORT_METHOD(addEvent:(NSString *)name location:(NSString *)location)
   RCTLogInfo(@"Pretending to create an event %@ at %@", name, location);
 }
 
-RCT_EXPORT_METHOD(checkForBlurryImage:(NSString *)imageAsBase64 callback:(RCTResponseSenderBlock)callback) {
-  UIImage* image = [self decodeBase64ToImage:imageAsBase64];
-  BOOL isImageBlurryResult = [self isImageBlurry:image];
+RCT_EXPORT_METHOD(detect:(NSString *)imageURL resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
   
-  id objects[] = { isImageBlurryResult ? @YES : @NO };
-  NSUInteger count = sizeof(objects) / sizeof(id);
-  NSArray *dataArray = [NSArray arrayWithObjects:objects
-                                           count:count];
+  UIImage *image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:imageURL]]];  
+  cv::Mat matImage = [self convertUIImageToCVMat:image];
   
-  callback(@[[NSNull null], dataArray]);
+  ///2. detection
+  NSString *faceCascadeName = [[NSBundle mainBundle] pathForResource:@"haarcascade_frontalface_alt2" ofType:@"xml"];
+  if(!cascadeLoaded){
+    std::cout<<"loading ..";
+    if( !faceCascade.load(std::string([faceCascadeName UTF8String]))){
+      return reject(@"novalex.vn", @"--(!)Error loading\n", nil);
+    }
+    cascadeLoaded = true;
+  }
+  
+  std::vector<cv::Rect> faces;
+  faceCascade.detectMultiScale(matImage, faces);
+  NSMutableArray *dataArray = [NSMutableArray arrayWithCapacity: faces.size()];
+  
+  for( size_t i = 0; i < faces.size(); i++ )
+  {
+    NSDictionary *item = @{ @"x" : [NSNumber numberWithInt:faces[i].x],
+                            @"y" : [NSNumber numberWithInt:faces[i].y],
+                            @"width": [NSNumber numberWithInt:faces[i].width],
+                            @"height": [NSNumber numberWithInt:faces[i].height] };
+    
+    [dataArray addObject:item];
+  }
+  
+  resolve(dataArray);
 }
+
 
 - (cv::Mat)convertUIImageToCVMat:(UIImage *)image {
   CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
@@ -46,43 +71,6 @@ RCT_EXPORT_METHOD(checkForBlurryImage:(NSString *)imageAsBase64 callback:(RCTRes
   CGContextRelease(contextRef);
   
   return cvMat;
-}
-
-- (UIImage *)decodeBase64ToImage:(NSString *)strEncodeData {
-  NSData *data = [[NSData alloc]initWithBase64EncodedString:strEncodeData options:NSDataBase64DecodingIgnoreUnknownCharacters];
-  return [UIImage imageWithData:data];
-}
-
-- (BOOL) isImageBlurry:(UIImage *) image {
-  // converting UIImage to OpenCV format - Mat
-  cv::Mat matImage = [self convertUIImageToCVMat:image];
-  cv::Mat matImageGrey;
-  // converting image's color space (RGB) to grayscale
-  cv::cvtColor(matImage, matImageGrey, CV_BGR2GRAY);
-  
-  cv::Mat dst2 = [self convertUIImageToCVMat:image];
-  cv::Mat laplacianImage;
-  dst2.convertTo(laplacianImage, CV_8UC1);
-  
-  // applying Laplacian operator to the image
-  cv::Laplacian(matImageGrey, laplacianImage, CV_8U);
-  cv::Mat laplacianImage8bit;
-  laplacianImage.convertTo(laplacianImage8bit, CV_8UC1);
-  
-  unsigned char *pixels = laplacianImage8bit.data;
-  
-  // 16777216 = 256*256*256
-  int maxLap = -16777216;
-  for (int i = 0; i < ( laplacianImage8bit.elemSize()*laplacianImage8bit.total()); i++) {
-    if (pixels[i] > maxLap) {
-      maxLap = pixels[i];
-    }
-  }
-  // one of the main parameters here: threshold sets the sensitivity for the blur check
-  // smaller number = less sensitive; default = 180
-  int threshold = 180;
-  
-  return (maxLap <= threshold);
 }
 
 @end

@@ -1,149 +1,66 @@
 import React, { Component } from 'react';
+
 import {
   AppRegistry,
   View,
   Text,
   Platform,
   Image,
-  TouchableOpacity,
+  TouchableOpacity
 } from 'react-native';
-import { RNCamera as Camera } from 'react-native-camera';
-import Toast, {DURATION} from 'react-native-easy-toast'
 
 import styles from '../Styles/Screens/CameraScreen';
 import OpenCV from '../NativeModules/OpenCV';
-import CircleWithinCircle from '../assets/svg/CircleWithinCircle';
+
+const BorderRectangle = ({ x: left, y: top, width, height }) => (
+  <View
+    style={{
+      borderWidth: 1,
+      borderColor: '#E91E63',
+      position: 'absolute',
+      top,
+      left,
+      width: width * 0.9,
+      height,
+      backgroundColor: 'transparent'
+    }}
+  >
+    <Text style={styles.label}>Pham Thanh Tu</Text>
+  </View>
+);
 
 export default class CameraScreen extends Component {
-  constructor(props) {
-    super(props);
-
-    this.takePicture = this.takePicture.bind(this);
-    this.checkForBlurryImage = this.checkForBlurryImage.bind(this);
-    this.proceedWithCheckingBlurryImage = this.proceedWithCheckingBlurryImage.bind(this);
-    this.repeatPhoto = this.repeatPhoto.bind(this);
-    this.usePhoto = this.usePhoto.bind(this);
-  }
-
   state = {
-    cameraPermission: false,
-    photoAsBase64: {
-      content: '',
-      isPhotoPreview: false,
-      photoPath: '',
-    },
+    faceRects: [],
+    photoPath:
+      'https://agiletechvn.github.io/wp-content/uploads/2017/12/Tu-Pham-Thanh-350x350.jpg'
   };
 
-  checkForBlurryImage(imageAsBase64) {
-    return new Promise((resolve, reject) => {
-      if (Platform.OS === 'android') {
-        OpenCV.checkForBlurryImage(imageAsBase64, error => {
-          // error handling
-        }, msg => {
-          resolve(msg);
-        });
-      } else {
-        OpenCV.checkForBlurryImage(imageAsBase64, (error, dataArray) => {
-          resolve(dataArray[0]);
-        });
-      }
-    });
+  componentDidMount() {
+    this.processPhoto();
   }
 
-  proceedWithCheckingBlurryImage() {
-    const { content, photoPath } = this.state.photoAsBase64;
-
-    this.checkForBlurryImage(content).then(blurryPhoto => {
-      if (blurryPhoto) {
-        this.refs.toast.show('Photo is blurred!',DURATION.FOREVER);
-        return this.repeatPhoto();
-      }
-      this.refs.toast.show('Photo is clear!', DURATION.FOREVER);
-      this.setState({ photoAsBase64: { ...this.state.photoAsBase64, isPhotoPreview: true, photoPath } });
-    }).catch(err => {
-      console.log('err', err)
-    });
+  async processPhoto() {
+    const faceRects = await OpenCV.detect(this.state.photoPath);
+    this.setState({ faceRects });
   }
-
-  async takePicture() {
-    if (this.camera) {
-      const options = { quality: 0.5, base64: true };
-      const data = await this.camera.takePictureAsync(options);
-      this.setState({
-        ...this.state,
-        photoAsBase64: { content: data.base64, isPhotoPreview: false, photoPath: data.uri },
-      });
-      this.proceedWithCheckingBlurryImage();
-    }
-  }
-
-
-  repeatPhoto() {
-    this.setState({
-      ...this.state,
-      photoAsBase64: {
-        content: '',
-        isPhotoPreview: false,
-        photoPath: '',
-      },
-    });
-  }
-
-  usePhoto() {
-    // do something, e.g. navigate
-  }
-
 
   render() {
-    if (this.state.photoAsBase64.isPhotoPreview) {
-      return (
-        <View style={styles.container}>
-          <Toast ref="toast" position="center" />
-          <Image
-            source={{ uri: `data:image/png;base64,${this.state.photoAsBase64.content}` }}
-            style={styles.imagePreview}
-          />
-          <View style={styles.repeatPhotoContainer}>
-            <TouchableOpacity onPress={this.repeatPhoto}>
-              <Text style={styles.photoPreviewRepeatPhotoText}>
-                Repeat photo
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.usePhotoContainer}>
-            <TouchableOpacity onPress={this.usePhoto}>
-              <Text style={styles.photoPreviewUsePhotoText}>
-                Use photo
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
+    const { faceRects, photoPath } = this.state;
     return (
       <View style={styles.container}>
-        <Camera
-          ref={cam => {
-            this.camera = cam;
+        <Image
+          source={{
+            uri: photoPath
           }}
-          style={styles.preview}
-          permissionDialogTitle={'Permission to use camera'}
-          permissionDialogMessage={'We need your permission to use your camera phone'}
-        >
-          <View style={styles.takePictureContainer}>
-            <TouchableOpacity onPress={this.takePicture}>
-              <View>
-                <CircleWithinCircle />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </Camera>
-        <Toast ref="toast" position="center" />
+          style={styles.imagePreview}
+        />
+        {faceRects.map((faceRect, index) => (
+          <BorderRectangle key={index} {...faceRect} />
+        ))}
       </View>
     );
   }
 }
-
 
 AppRegistry.registerComponent('CameraScreen', () => CameraScreen);

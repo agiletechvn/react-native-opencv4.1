@@ -1,21 +1,23 @@
+OPENCV_VERSION=${1:-3.4.1}
+
 # ios
 
-wget https://sourceforge.net/projects/opencvlibrary/files/opencv-ios/3.4.1/opencv-3.4.1-ios-framework.zip
-unzip -a opencv-3.4.1-ios-framework.zip
+wget https://sourceforge.net/projects/opencvlibrary/files/opencv-ios/${OPENCV_VERSION}/opencv-${OPENCV_VERSION}-ios-framework.zip
+unzip -a opencv-${OPENCV_VERSION}-ios-framework.zip
 cd ios
 cp -r ./../opencv2.framework ./
 cd ..
-rm -rf opencv-3.4.1-ios-framework.zip
+rm -rf opencv-${OPENCV_VERSION}-ios-framework.zip
 rm -rf opencv2.framework/
 
 # android
 
-wget https://sourceforge.net/projects/opencvlibrary/files/opencv-android/3.4.1/opencv-3.4.1-android-sdk.zip
-unzip opencv-3.4.1-android-sdk.zip
+wget https://sourceforge.net/projects/opencvlibrary/files/opencv-android/${OPENCV_VERSION}/opencv-${OPENCV_VERSION}-android-sdk.zip
+unzip opencv-${OPENCV_VERSION}-android-sdk.zip
 cd android/app/src/main
 mkdir jniLibs
 cp -r ./../../../../OpenCV-android-sdk/sdk/native/libs/ ./jniLibs
 cd ../../../../
-rm -rf opencv-3.4.1-android-sdk.zip
+rm -rf opencv-${OPENCV_VERSION}-android-sdk.zip
 rm -rf OpenCV-android-sdk/
 
