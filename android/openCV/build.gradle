@@ -4,6 +4,11 @@ android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+    }
+
+
     buildTypes {
         release {
             minifyEnabled false
@@ -12,4 +17,8 @@ android {
         all {
         }
     }
+}
+
+dependencies {
+    implementation 'com.android.support:appcompat-v7:28.0.0'
 }

@@ -41,6 +41,7 @@
   *** get*();
 }
 
+#-keep class androidx.core.app.CoreComponentFactory { *; }
 -keep class * extends com.facebook.react.bridge.JavaScriptModule { *; }
 -keep class * extends com.facebook.react.bridge.NativeModule { *; }
 -keepclassmembers,includedescriptorclasses class * { native <methods>; }

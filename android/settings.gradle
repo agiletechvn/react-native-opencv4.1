@@ -1,5 +1,4 @@
 rootProject.name = 'reactNativeOpencvTutorial'
 
-
 include ':app'
 include ':openCV'
