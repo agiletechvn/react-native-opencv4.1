@@ -47,6 +47,7 @@ export default class CameraScreen extends Component {
 
   render() {
     const { faceRects, photoPath } = this.state;
+    console.log(faceRects);
     return (
       <View style={styles.container}>
         <Image

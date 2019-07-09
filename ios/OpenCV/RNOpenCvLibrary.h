@@ -8,5 +8,8 @@
 
 @interface RNOpenCvLibrary : NSObject <RCTBridgeModule>
 
+- (instancetype)init;
+- (void)prepare;
+
 @end
 
